@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VIP Gold Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0c0c0c, #1a1a1a);
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(255, 215, 0, 0.05);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.15);
+      backdrop-filter: blur(8px);
+      margin-bottom: 30px;
+    }
+    h2, h3 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ffd700;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    input, button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      border: none;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input {
+      background-color: #1e1e1e;
+      color: #ffd700;
+      border: 1px solid #ffd700;
+    }
+    button {
+      background: linear-gradient(to right, #ffcc00, #ffdd55);
+      color: #000;
+      transition: all 0.3s;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    button:hover {
+      background: linear-gradient(to right, #ffdd55, #ffcc00);
+      transform: scale(1.02);
+    }
+    #logout {
+      background: linear-gradient(to right, #ff4d4d, #ff6666);
+      color: white;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btn-row button {
+      flex: 1 1 48%;
+    }
+    .plan-btn {
+      margin-top: 10px;
+      font-size: 15px;
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid #ffd700;
+      color: #ffd700;
+    }
+    #balanceBox {
+      background: #ffd700;
+      color: #000;
+      padding: 12px 20px;
+      border-radius: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 12px #ffd700;
+    }
+    .center { text-align: center; }
+    .claim-btn {
+      background: #ffaa00;
+      margin-top: 15px;
+      color: black;
+    }
+    a.whatsapp {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #44ffcc;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    a.whatsapp:hover {
+      text-decoration: underline;
+    }
+    #depositList div, #withdrawalList div {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border-left: 4px solid #ffd700;
+      font-size: 14px;
+    }
+    @media (max-width: 480px) {
+      h2, h3 { font-size: 18px; }
+      input, button { font-size: 15px; }
+      .btn-row button { flex: 1 1 100%; }
+      .plan-btn { font-size: 13px; }
+      #balanceBox { font-size: 16px; }
+      a.whatsapp { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="authSection">
+    <h2>create account</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="signup()">Signup (Bonus Rs. 100)</button>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div class="container" id="dashboard" style="display:none;">
+    <h3>2026</h3>
+    <div id="balanceBox">Balance: Rs <span id="balance">0</span></div>
+
+    <div class="btn-row">
+      <button onclick="deposit()">Deposit</button>
+      <button id="withdrawBtn" onclick="withdraw()" disabled>Withdraw</button>
+    </div>
+
+    <button class="claim-btn" onclick="claimDaily()">💸 Claim Daily</button>
+
+    <h3 class="center">Buy a Plan</h3>
+    <button class="plan-btn" onclick="buyPlan(300)">Rs. 300 – Daily Rs. 100</button>
+    <button class="plan-btn" onclick="buyPlan(600)">Rs. 600 – Daily Rs. 200</button>
+    <button class="plan-btn" onclick="buyPlan(1000)">Rs. 1000 – Daily Rs. 350</button>
+    <button class="plan-btn" onclick="buyPlan(2000)">Rs. 2000 – Daily Rs. 700</button>
+    <button class="plan-btn" onclick="buyPlan(5000)">Rs. 5000 – Daily Rs. 1500</button>
+
+    <h3 class="center">My Deposits</h3>
+    <div id="depositList"></div>
+
+    <h3 class="center">My Withdrawals</h3>
+    <div id="withdrawalList"></div>
+
+    <button id="logout" onclick="logout()">Logout</button>
+    <a class="whatsapp" href="https://wa.me/923270077301" target="_blank">📱 WhatsApp Support</a>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDY6SNnWk22WV6aT9mZy0ETVbgTts5rV04",
+      authDomain: "plan-fafcf.firebaseapp.com",
+      databaseURL: "https://plan-fafcf-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "plan-fafcf",
+      storageBucket: "plan-fafcf.appspot.com",
+      messagingSenderId: "13311452773",
+      appId: "1:13311452773:web:257cb4375768d11af0c88c"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    function signup() {
+      const email = emailEl.value;
+      const password = passwordEl.value;
+      if (!email || !password) return alert("Please fill all fields.");
+      auth.createUserWithEmailAndPassword(email, password).then((cred) => {
+        db.ref("users/" + cred.user.uid).set({
+          email,
+          balance: 100,
+          lastClaim: 0,
+          plan: 0
+        });
+        showDashboard(cred.user);
+      }).catch((err) => alert(err.message));
+    }
+
+    function login() {
+      const email = emailEl.value;
+      const password = passwordEl.value;
+      if (!email || !password) return alert("Please fill all fields.");
+      auth.signInWithEmailAndPassword(email, password)
+        .then((cred) => showDashboard(cred.user))
+        .catch((err) => alert(err.message));
+    }
+
+    function logout() {
+      auth.signOut().then(() => {
+        dashboardEl.style.display = "none";
+        authSectionEl.style.display = "block";
+      });
+    }
+
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        showDashboard(user);
+        showDeposits();
+        showWithdrawals();
+      }
+    });
+
+    function showDashboard(user) {
+      authSectionEl.style.display = "none";
+      dashboardEl.style.display = "block";
+      db.ref("users/" + user.uid).on("value", (snap) => {
+        const data = snap.val();
+        balanceEl.innerText = data.balance || 0;
+        withdrawBtn.disabled = data.balance < 300;
+        updateClaimText(data.plan);
+      });
+      startClaimTimer(user);
+    }
+
+    function updateClaimText(plan) {
+      const btn = document.querySelector(".claim-btn");
+      if (plan === 300) btn.innerText = "💸 Claim Rs. 100";
+      else if (plan === 600) btn.innerText = "💸 Claim Rs. 200";
+      else if (plan === 1000) btn.innerText = "💸 Claim Rs. 350";
+      else if (plan === 2000) btn.innerText = "💸 Claim Rs. 700";
+      else if (plan === 5000) btn.innerText = "💸 Claim Rs. 1500";
+      else btn.innerText = "💸 Claim Daily";
+    }
+
+    function claimDaily() {
+      const user = auth.currentUser;
+      if (!user) return;
+      const ref = db.ref("users/" + user.uid);
+      ref.once("value").then((snap) => {
+        const data = snap.val();
+        const now = Date.now();
+        if (now - (data.lastClaim || 0) < 86400000) return alert("Already claimed.");
+        let earn = 0;
+        if (data.plan === 300) earn = 100;
+        else if (data.plan === 600) earn = 200;
+        else if (data.plan === 1000) earn = 350;
+        else if (data.plan === 2000) earn = 700;
+        else if (data.plan === 5000) earn = 1500;
+        else return alert("Buy a plan first.");
+        ref.update({ balance: data.balance + earn, lastClaim: now });
+        alert("Claimed Rs. " + earn);
+      });
+    }
+
+    function startClaimTimer(user) {
+      const ref = db.ref("users/" + user.uid);
+      ref.on("value", (snap) => {
+        const data = snap.val();
+        const btn = document.querySelector(".claim-btn");
+        const now = Date.now();
+        const next = (data.lastClaim || 0) + 86400000;
+        if (now >= next) {
+          btn.disabled = false;
+          updateClaimText(data.plan);
+        } else {
+          btn.disabled = true;
+          const interval = setInterval(() => {
+            const left = next - Date.now();
+            if (left <= 0) {
+              clearInterval(interval);
+              btn.disabled = false;
+              updateClaimText(data.plan);
+            } else {
+              const h = Math.floor(left / 3600000);
+              const m = Math.floor((left % 3600000) / 60000);
+              const s = Math.floor((left % 60000) / 1000);
+              btn.innerText = `Next claim: ${h}h ${m}m ${s}s`;
+            }
+          }, 1000);
+        }
+      });
+    }
+
+    function buyPlan(amount) {
+      const user = auth.currentUser;
+      if (!user) return;
+      const ref = db.ref("users/" + user.uid);
+      ref.once("value").then((snap) => {
+        const data = snap.val();
+        if ((data.balance || 0) >= amount) {
+          ref.update({ balance: data.balance - amount, plan: amount });
+          alert("Plan purchased!");
+        } else {
+          alert("Not enough balance.");
+        }
+      });
+    }
+
+    function deposit() {
+      alert("Send to 03270077301 (Muhammad Waqas)");
+      const tid = prompt("Enter TID:");
+      const amount = prompt("Enter Amount:");
+      const user = auth.currentUser;
+      if (!tid || !amount || !user) return;
+      db.ref("deposits").push({
+        uid: user.uid,
+        tid, amount,
+        status: "pending",
+        date: new Date().toLocaleString()
+      });
+      alert("Deposit requested.");
+    }
+
+    function withdraw() {
+      const number = prompt("Enter Easypaisa/JazzCash number:");
+      const amount = prompt("Enter Amount:");
+      const user = auth.currentUser;
+      if (!number || !amount || !user) return;
+      const ref = db.ref("users/" + user.uid);
+      ref.once("value").then((snap) => {
+        const data = snap.val();
+        if (amount < 300 || data.balance < amount) {
+          alert("Min Rs. 300 required.");
+          return;
+        }
+        ref.update({ balance: data.balance - amount });
+        db.ref("withdrawals").push({
+          uid: user.uid,
+          number, amount,
+          status: "pending",
+          date: new Date().toLocaleString()
+        });
+        alert("Withdraw request sent.");
+      });
+    }
+
+    function showDeposits() {
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref("deposits").orderByChild("uid").equalTo(user.uid).once("value", snap => {
+        depositList.innerHTML = "";
+        snap.forEach(child => {
+          const d = child.val();
+          depositList.innerHTML += `<div><b>TID:</b> ${d.tid}<br><b>Amount:</b> Rs ${d.amount}<br><b>Status:</b> ${d.status}<br><b>Date:</b> ${d.date}</div>`;
+        });
+      });
+    }
+
+    function showWithdrawals() {
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref("withdrawals").orderByChild("uid").equalTo(user.uid).once("value", snap => {
+        withdrawalList.innerHTML = "";
+        snap.forEach(child => {
+          const w = child.val();
+          withdrawalList.innerHTML += `<div><b>Number:</b> ${w.number}<br><b>Amount:</b> Rs ${w.amount}<br><b>Status:</b> ${w.status}<br><b>Date:</b> ${w.date}</div>`;
+        });
+      });
+    }
+
+    // Refs for quick use
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const balanceEl = document.getElementById("balance");
+    const authSectionEl = document.getElementById("authSection");
+    const dashboardEl = document.getElementById("dashboard");
+    const depositList = document.getElementById("depositList");
+    const withdrawalList = document.getElementById("withdrawalList");
+    const withdrawBtn = document.getElementById("withdrawBtn");
+  </script>
+</body>
+</html>
